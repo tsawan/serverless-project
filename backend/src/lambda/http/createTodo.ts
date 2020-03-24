@@ -1,45 +1,40 @@
 import 'source-map-support/register'
 
-import { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult } from 'aws-lambda'
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
+
+import * as middy from 'middy'
+import { cors } from 'middy/middlewares'
 
 import { CreateTodoRequest } from '../../requests/CreateTodoRequest'
-//import * as AWSXRay from 'aws-xray-sdk'
-//const XAWS = AWSXRay.captureAWS(AWS)
 
-import { DocumentClient } from 'aws-sdk/clients/dynamodb'
+import { createLogger } from '../../utils/logger'
+const logger = createLogger('createTodo')
 
+import { todoDomain } from '../../domain/todoDomain'
 
-const docClient: DocumentClient = createDynamoDBClient(),
-const todosTable = process.env.TODOS_TABLE
+import { getUserId } from '../utils'
+import { TodoItem } from '../../models/TodoItem'
 
-export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  const newTodo: CreateTodoRequest = JSON.parse(event.body)
+export const handler = middy(
+  async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+    const todoRequest: CreateTodoRequest = JSON.parse(event.body)
 
-  
-  await createTodo(newTodo);
-  return undefined
-}
+    logger.info('Received create request')
+    const userId = getUserId(event)
 
-async function createTodo(newTodo) {
-  await docClient.put({
-    TableName: todosTable,
-    Item: newTodo
-  }).promise()
+    const newTodo: TodoItem = await todoDomain.createTodo(userId, todoRequest)
 
-  return newTodo
-}
-
-function createDynamoDBClient() {
-  /*
-  if (process.env.IS_OFFLINE) {
-    console.log('Creating a local DynamoDB instance')
-    
-    return new XAWS.DynamoDB.DocumentClient({
-      region: 'localhost',
-      endpoint: 'http://localhost:8000'
-    })
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        item: newTodo
+      })
+    }
   }
-  */
-  //return new XAWS.DynamoDB.DocumentClient()
-  return new DocumentClient();
-}
+)
+
+handler.use(
+  cors({
+    credentials: true
+  })
+)
