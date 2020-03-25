@@ -3,9 +3,9 @@
 import * as AWS  from 'aws-sdk'
 
 const AWSXRay = require('aws-xray-sdk')
+const XAWS = AWSXRay.captureAWS(AWS)
 import { DocumentClient } from 'aws-sdk/clients/dynamodb'
 
-const XAWS = AWSXRay.captureAWS(AWS)
 import { TodoItem } from '../models/TodoItem'
 
 import { createLogger } from '../utils/logger'
@@ -17,6 +17,22 @@ const docClient: DocumentClient = new XAWS.DynamoDB.DocumentClient()
 const todosTable = process.env.TODOS_TABLE
 
 const todoDao = <any>{}
+
+todoDao.todoExists = async (userId: string, todoId: string): Promise<boolean> => {
+
+  const result = await docClient
+    .get({
+      TableName: todosTable,
+      Key: {
+        userId,
+        todoId
+      }
+    })
+    .promise();
+
+  logger.info('getTodo ', !!result.Item);
+  return !!result.Item;
+}
 
 todoDao.getTodos = async (userId: string) => {
   const result = await docClient
@@ -42,20 +58,39 @@ todoDao.updateTodo = async (
   await docClient
     .update({
       TableName: todosTable,
-      Key: {
-        userId: userId,
-        todoId: todoId
-      },
-      ExpressionAttributeNames: {
-        '#D': 'done'
-      },
-      ExpressionAttributeValues: {
-        ':y': updatedTodo.done
-      },
-      UpdateExpression: 'SET #D = :y',
-      ReturnValues: 'ALL_NEW'
+      ...getUpdateParams(userId, todoId, "done", updatedTodo.done)
     })
     .promise()
+}
+
+todoDao.updateTodoUrl = async (
+  userId: string,
+  todoId: string,
+  url: string
+) => {
+  await docClient
+    .update({
+      TableName: todosTable,
+      ...getUpdateParams(userId, todoId, "attachmentUrl", url)
+    })
+    .promise();
+};
+
+const getUpdateParams = (userId: string, todoId: string, field: string, value: any) => {
+  return {
+    Key: {
+      userId,
+      todoId
+    },
+    ExpressionAttributeNames: {
+      "#D": field
+    },
+    ExpressionAttributeValues: {
+      ":y": value
+    },
+    UpdateExpression: "SET #D = :y",
+    ReturnValues: "ALL_NEW"
+  }
 }
 
 todoDao.createTodo = async (newTodo: TodoItem) => {
