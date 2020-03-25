@@ -7,12 +7,12 @@ import { cors } from 'middy/middlewares'
 
 import { getUserId } from '../utils'
 
-import { todoDomain } from '../../domain/todoDomain'
+import { TodoDomain } from '../../domain/TodoDomain'
 
 export const handler = middy(
   async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     const userId = getUserId(event)
-    const todos = await todoDomain.getTodos(userId)
+    const todos = await TodoDomain.getTodos(userId)
 
     return {
       statusCode: 200,

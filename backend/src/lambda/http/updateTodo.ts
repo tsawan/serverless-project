@@ -10,7 +10,7 @@ import { UpdateTodoRequest } from '../../requests/UpdateTodoRequest'
 import { createLogger } from '../../utils/logger'
 const logger = createLogger('updateTodo')
 
-import { todoDomain } from '../../domain/todoDomain'
+import { TodoDomain } from '../../domain/TodoDomain'
 import { getUserId } from '../utils'
 
 export const handler = middy(
@@ -18,7 +18,7 @@ export const handler = middy(
     const todoId = event.pathParameters.todoId
     const updatedTodo: UpdateTodoRequest = JSON.parse(event.body)
 
-    await todoDomain.updateTodo(getUserId(event), todoId, updatedTodo)
+    await TodoDomain.updateTodo(getUserId(event), todoId, updatedTodo)
 
     logger.info(`Todo updated`)
 

@@ -10,7 +10,7 @@ import { CreateTodoRequest } from '../../requests/CreateTodoRequest'
 import { createLogger } from '../../utils/logger'
 const logger = createLogger('createTodo')
 
-import { todoDomain } from '../../domain/todoDomain'
+import { TodoDomain } from '../../domain/TodoDomain'
 
 import { getUserId } from '../utils'
 import { TodoItem } from '../../models/TodoItem'
@@ -22,7 +22,7 @@ export const handler = middy(
     logger.info('Received create request')
     const userId = getUserId(event)
 
-    const newTodo: TodoItem = await todoDomain.createTodo(userId, todoRequest)
+    const newTodo: TodoItem = await TodoDomain.createTodo(userId, todoRequest)
 
     return {
       statusCode: 200,

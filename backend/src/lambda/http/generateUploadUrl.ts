@@ -9,13 +9,13 @@ import { getUserId } from "../utils";
 import { createLogger } from "../../utils/logger";
 const logger = createLogger("generateUploadUrl");
 
-import { todoDomain } from '../../domain/todoDomain'
+import { TodoDomain } from '../../domain/TodoDomain'
 
 export const handler = middy(
   async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     const todoId = event.pathParameters.todoId;
 
-    const todoExists = await todoDomain.todoExists(getUserId(event), todoId);
+    const todoExists = await TodoDomain.todoExists(getUserId(event), todoId);
 
     logger.info(`todo exists ${todoExists}`);
 
@@ -27,7 +27,7 @@ export const handler = middy(
         })
       };
     } else {
-      const result = await todoDomain.generateURL(getUserId(event), todoId);
+      const result = await TodoDomain.generateURL(getUserId(event), todoId);
       return {
         statusCode: 200,
         body: JSON.stringify({

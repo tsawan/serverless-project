@@ -3,81 +3,78 @@
 import { createLogger } from "../utils/logger";
 const logger = createLogger("todoDomain");
 
-import { todoDao } from "../dao/todoDao";
-import { todoAttachment } from "../dao/todoAttachment";
+import { TodoDao } from "../dao/TodoDao";
+import { TodoAttachment } from "../dao/TodoAttachment";
 import { CreateTodoRequest } from "../requests/CreateTodoRequest";
 
 import * as uuid from "uuid";
 import { TodoItem } from "../models/TodoItem";
 import { UpdateTodoRequest } from "../requests/UpdateTodoRequest";
 
-const bucketName = process.env.IMAGES_S3_BUCKET;
+export class TodoDomain {
 
-const todoDomain = <any>{};
+  static async getTodos(userId: string) {
+    return await TodoDao.getTodos(userId);
+  }
 
-todoDomain.getTodos = async (userId: string) => {
-  return await todoDao.getTodos(userId);
-};
+  static async deleteTodo(userId: string, todoId: string) {
+    await TodoDao.deleteTodo(userId, todoId);
+  }
 
-todoDomain.deleteTodo = async (userId: string, todoId: string) => {
-  await todoDao.deleteTodo(userId, todoId);
-};
+  static async todoExists(userId: string, todoId: string): Promise<boolean> {
+    return await TodoDao.todoExists(userId, todoId);
+  }
 
-todoDomain.todoExists = async (userId: string, todoId: string): Promise<boolean> => {
-  return await todoDao.todoExists(userId, todoId);
-};
+  static async updateTodo(
+    userId: string,
+    todoId: string,
+    todoRequest: UpdateTodoRequest
+  ) {
+    await TodoDao.updateTodo(userId, todoId, todoRequest);
+  }
 
-todoDomain.updateTodo = async (
-  userId: string,
-  todoId: string,
-  todoRequest: UpdateTodoRequest
-) => {
-  await todoDao.updateTodo(userId, todoId, todoRequest);
-};
+  static async createTodo(
+    userId: string,
+    todoRequest: CreateTodoRequest
+  ): Promise<TodoItem> {
+    const todoId = uuid.v4();
+    const createdAt = new Date().toISOString();
+    const dueDate = new Date().toISOString();
+
+    const newTodo: TodoItem = {
+      userId,
+      todoId,
+      createdAt,
+      dueDate,
+      done: false,
+      name: todoRequest.name
+    };
+
+    await TodoDao.createTodo(newTodo);
+    return newTodo;
+  }
+
+  // attachments
+
+  static async generateURL(userId: string, todoId: string) {
+    const imageId = uuid.v4();
+    const imageUrl = TodoAttachment.getImageUrl(imageId);
+
+    const url = await getSignedUrl(imageId);
+    logger.info(`Generated attachment url ${url}`);
+
+    await updateTodoUrl(userId, todoId, imageUrl);
+
+    return {
+      uploadUrl: url
+    };
+  }
+}
 
 const updateTodoUrl = async (userId: string, todoId: string, url: string) => {
-  await todoDao.updateTodoUrl(userId, todoId, url);
+  await TodoDao.updateTodoUrl(userId, todoId, url);
 };
-
-todoDomain.createTodo = async (
-  userId: string,
-  todoRequest: CreateTodoRequest
-): Promise<TodoItem> => {
-  const todoId = uuid.v4();
-  const createdAt = new Date().toISOString();
-  const dueDate = new Date().toISOString();
-
-  const newTodo: TodoItem = {
-    userId,
-    todoId,
-    createdAt,
-    dueDate,
-    done: false,
-    name: todoRequest.name
-  };
-
-  await todoDao.createTodo(newTodo);
-  return newTodo;
-};
-
-// attachments
 
 const getSignedUrl = async (imageId: string) => {
-  return await todoAttachment.getSignedUrl(imageId);
+  return await TodoAttachment.getSignedUrl(imageId);
 };
-
-todoDomain.generateURL = async (userId: string, todoId: string) => {
-  const imageId = uuid.v4();
-  const imageUrl = `https://${bucketName}.s3.amazonaws.com/${imageId}`;
-
-  const url = await getSignedUrl(imageId);
-  logger.info(`Generated attachment url ${url}`);
-
-  await updateTodoUrl(userId, todoId, imageUrl);
-
-  return {
-    uploadUrl: url
-  };
-};
-
-export { todoDomain };
