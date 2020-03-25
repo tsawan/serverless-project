@@ -4,6 +4,8 @@ service:
 plugins:
   - serverless-webpack
   - serverless-iam-roles-per-function
+  - serverless-reqvalidator-plugin
+  - serverless-aws-documentation
 
 package:
   individually: true 
@@ -25,6 +27,21 @@ provider:
     IMAGES_S3_BUCKET: sless-tsawan-bucket-${self:provider.stage}
     SIGNED_URL_EXPIRATION: 4200
 
+custom:
+  documentation:
+    api:
+      info:
+        version: v1.0.0
+        title: Todo API
+        description: Serverless application for GTD
+    models:
+      - name: CreateTodoRequest
+        contentType: application/json
+        schema: ${file(models/create-todo-request.json)}
+      - name: UpdateTodoRequest
+        contentType: application/json
+        schema: ${file(models/update-todo-request.json)}
+    
 functions:
 
   Auth:
@@ -56,6 +73,12 @@ functions:
           path: todos
           authorizer: Auth
           cors: true
+          reqValidatorName: RequestBodyValidator
+          documentation:
+            summary: Create a new todo
+            description: Create a new todo
+            requestModels:
+              'application/json': CreateTodoRequest
 
     iamRoleStatements:
       - Effect: Allow
@@ -71,6 +94,13 @@ functions:
           path: todos/{todoId}
           authorizer: Auth
           cors: true
+          reqValidatorName: RequestBodyValidator
+          documentation:
+            summary: Toggle todo state
+            description: Toggle todo state
+            requestModels:
+              'application/json': UpdateTodoRequest
+
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -151,6 +181,14 @@ resources:
                     KeyType: RANGE
                 Projection:
                   ProjectionType: ALL
+    RequestBodyValidator:
+      Type: AWS::ApiGateway::RequestValidator
+      Properties:
+        Name: 'request-body-validator'
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        ValidateRequestBody: true
+        ValidateRequestParameters: false
 
     AttachmentsBucket:
       Type: AWS::S3::Bucket

@@ -39,7 +39,7 @@ export class TodoDomain {
   ): Promise<TodoItem> {
     const todoId = uuid.v4();
     const createdAt = new Date().toISOString();
-    const dueDate = new Date().toISOString();
+    const dueDate = new Date(todoRequest.dueDate).toISOString();
 
     const newTodo: TodoItem = {
       userId,
