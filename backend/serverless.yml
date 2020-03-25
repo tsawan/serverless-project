@@ -5,6 +5,9 @@ plugins:
   - serverless-webpack
   - serverless-iam-roles-per-function
 
+package:
+  individually: true 
+
 provider:
   tracing:
     lambda: true 
@@ -22,27 +25,6 @@ provider:
     IMAGES_S3_BUCKET: sless-tsawan-bucket-${self:provider.stage}
     SIGNED_URL_EXPIRATION: 4200
 
-  iamRoleStatements:
-    - Effect: Allow
-      Action:
-        - s3:PutObject
-        - s3:GetObject
-      Resource: arn:aws:s3:::${self:provider.environment.IMAGES_S3_BUCKET}/*    
-    - Effect: Allow
-      Action:
-        - dynamodb:Query
-        - dynamodb:Scan
-        - dynamodb:GetItem
-        - dynamodb:PutItem
-        - dynamodb:UpdateItem
-        - dynamodb:DeleteItem
-      Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}"
-    - Effect: Allow
-      Action:
-        - dynamodb:Query
-        - dynamodb:Scan
-      Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}/index/*"   
-
 functions:
 
   Auth:
@@ -56,7 +38,16 @@ functions:
           path: todos/
           authorizer: Auth
           cors: true
-
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+        Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}"
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+        Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}/index/*"   
+        
   CreateTodo:
     handler: src/lambda/http/createTodo.handler
     events:
@@ -66,6 +57,12 @@ functions:
           authorizer: Auth
           cors: true
 
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:PutItem
+        Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}"
+
   UpdateTodo:
     handler: src/lambda/http/updateTodo.handler
     events:
@@ -74,7 +71,12 @@ functions:
           path: todos/{todoId}
           authorizer: Auth
           cors: true
-
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:UpdateItem
+        Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}"
+        
   DeleteTodo:
     handler: src/lambda/http/deleteTodo.handler
     events:
@@ -83,7 +85,12 @@ functions:
           path: todos/{todoId}
           authorizer: Auth
           cors: true
-
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:DeleteItem
+        Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}"
+        
   GenerateUploadUrl:
     handler: src/lambda/http/generateUploadUrl.handler
     events:
@@ -92,7 +99,18 @@ functions:
           path: todos/{todoId}/attachment
           authorizer: Auth
           cors: true
-
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - s3:PutObject
+  #        - s3:GetObject
+        Resource: arn:aws:s3:::${self:provider.environment.IMAGES_S3_BUCKET}/*    
+      - Effect: Allow
+        Action:
+          - dynamodb:GetItem
+          - dynamodb:UpdateItem
+        Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}"
+          
 resources:
   Resources:
 
